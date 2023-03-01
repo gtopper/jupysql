@@ -6,6 +6,8 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import NoSuchModuleError
 from IPython.core.error import UsageError
 import difflib
+import urllib.parse
+import ast
 
 PLOOMBER_SUPPORT_LINK_STR = (
     "For technical support: https://ploomber.io/community"
@@ -278,12 +280,23 @@ class Connection:
                     # display list of connections
                     print(cls.connection_list())
             elif os.getenv("DATABASE_URL"):
-                cls.current = Connection.from_connect_str(
-                    connect_str=os.getenv("DATABASE_URL"),
-                    connect_args=connect_args,
-                    creator=creator,
-                    alias=alias,
-                )
+                # try and extract connect_args from DATABASE_URL
+                if not connect_args and '&' in os.getenv("DATABASE_URL"):
+                    cls.current = Connection.from_connect_str(
+                        connect_str=os.getenv("DATABASE_URL").split('&')[0],
+                        connect_args=ast.literal_eval(
+                            '{' + urllib.parse.unquote_plus(os.getenv('DATABASE_URL').split('&')[1]).replace(
+                                'requests_kwargs=','"requests_kwargs":') + '}'),
+                        creator=creator,
+                        alias=alias,
+                    )
+                else:
+                    cls.current = Connection.from_connect_str(
+                        connect_str=os.getenv("DATABASE_URL"),
+                        connect_args=connect_args,
+                        creator=creator,
+                        alias=alias,
+                    )
             else:
                 raise cls._error_no_connection()
 

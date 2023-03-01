@@ -385,6 +385,7 @@ def _commit(conn, config):
 
 def run(conn, sql, config, user_namespace):
     if sql.strip():
+        conn.dialect.supports_statement_cache = False # disable SQL compilation caching warning
         for statement in sqlparse.split(sql):
             first_word = sql.strip().split()[0].lower()
             if first_word == "begin":
