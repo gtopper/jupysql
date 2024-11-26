@@ -5,6 +5,8 @@ import os
 from difflib import get_close_matches
 import atexit
 from functools import partial
+import urllib.parse
+import ast
 
 import sqlalchemy
 from sqlalchemy.engine import Engine
@@ -304,7 +306,21 @@ class ConnectionManager:
                 if displaycon and _current._config_feedback_normal_or_more():
                     cls.display_current_connection()
             elif os.getenv("DATABASE_URL"):
-                cls.current = cls.from_connect_str(
+                # try and extract connect_args from DATABASE_URL
+                if not connect_args and '&' in os.getenv("DATABASE_URL"):
+                    connect_str, after_amp = os.getenv("DATABASE_URL").split("&", 1)
+                    connect_args = ast.literal_eval(
+                        "{" + urllib.parse.unquote_plus(after_amp).replace("requests_kwargs=",
+                                                                           '"requests_kwargs":') + "}")
+                    cls.current = cls.from_connect_str(
+                        connect_str=connect_str,
+                        connect_args=connect_args,
+                        creator=creator,
+                        alias=alias,
+                        config=config,
+                    )
+                else:
+                    cls.current = cls.from_connect_str(
                     connect_str=os.getenv("DATABASE_URL"),
                     connect_args=connect_args,
                     creator=creator,
